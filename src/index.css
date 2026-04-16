@@ -222,9 +222,10 @@ body {
   border: 1.5px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
-  max-height: 260px;
+  max-height: 50vh;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
+  -webkit-overflow-scrolling: touch;
 }
 
 .sku-result-item {
@@ -232,6 +233,7 @@ body {
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.1s;
+  min-height: 44px;
 }
 
 .sku-result-item:last-child { border-bottom: none; }
