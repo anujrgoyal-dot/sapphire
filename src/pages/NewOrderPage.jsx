@@ -78,7 +78,7 @@ export default function NewOrderPage() {
     clearTimeout(searchTimeout.current)
     searchTimeout.current = setTimeout(async () => {
       setSkuLoading(true)
-      const { data } = await supabase.from('skus').select('*').ilike('description', `%${skuSearch}%`).limit(30)
+      const { data } = await supabase.from('skus').select('*').ilike('description', `%${skuSearch}%`).limit(50)
       setSkuResults(data || [])
       setShowSkuResults(true)
       setSkuLoading(false)
