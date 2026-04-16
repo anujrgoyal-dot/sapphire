@@ -109,10 +109,11 @@ export function generateSaleOrderPDF(order) {
 
   // ── CUSTOMER + META BOX ───────────────────────────────────────────────────
   let y = 39
+  const boxH = 46
   doc.setDrawColor(...LGRAY)
   doc.setLineWidth(0.3)
-  doc.rect(ml, y, cw, 40)
-  doc.line(halfX, y, halfX, y + 40)
+  doc.rect(ml, y, cw, boxH)
+  doc.line(halfX, y, halfX, y + boxH)
 
   // LEFT — Customer info
   doc.setFontSize(7.5)
@@ -131,12 +132,12 @@ export function generateSaleOrderPDF(order) {
   const addrLines = doc.splitTextToSize('Address : ' + (client.address || ''), halfX - ml - 4)
   doc.text(addrLines, ml + 2, y + 18)
 
-  doc.line(ml, y + 27, halfX, y + 27)
-  doc.text('Contact Person : ' + (client.contact_person || ''), ml + 2, y + 31)
-  doc.text('Email ID : ' + (client.email || ''), ml + 2, y + 35)
-  doc.text('GST No : ' + (client.gst_no || ''), ml + 2, y + 39)
+  doc.line(ml, y + 30, halfX, y + 30)
+  doc.text('Contact Person : ' + (client.contact_person || ''), ml + 2, y + 35)
+  doc.text('Email ID : ' + (client.email || ''), ml + 2, y + 40)
+  doc.text('GST No : ' + (client.gst_no || ''), ml + 2, y + 45)
 
-  // RIGHT — Quotation meta
+  // RIGHT — Quotation meta (6 rows x 5mm = 30mm, divider at 32mm)
   const rX = halfX + 2
   const metaRows = [
     ['Quotation No.', ':  ' + (order.so_number || '')],
@@ -148,19 +149,19 @@ export function generateSaleOrderPDF(order) {
   ]
   doc.setFontSize(7.5)
   metaRows.forEach(([label, value], i) => {
-    const ry = y + 6 + i * 5.6
+    const ry = y + 6 + i * 5
     doc.setFont('helvetica', 'bold')
     doc.text(label, rX, ry)
     doc.setFont('helvetica', 'normal')
     doc.text(String(value), rX + 34, ry)
   })
-  doc.line(halfX, y + 27, ml + cw, y + 27)
+  doc.line(halfX, y + 32, ml + cw, y + 32)
   doc.setFontSize(7)
-  doc.text('Contact Person No : ' + (client.phone || ''), rX, y + 31)
-  doc.text('PAN No : ' + (client.pan_no || ''), rX, y + 35)
+  doc.text('Contact Person No : ' + (client.phone || ''), rX, y + 37)
+  doc.text('PAN No : ' + (client.pan_no || ''), rX, y + 42)
 
   // ── ITEMS TABLE ───────────────────────────────────────────────────────────
-  y += 42
+  y += 48
 
   const totals = items.reduce((acc, item) => {
     const c = calcItem(item)
