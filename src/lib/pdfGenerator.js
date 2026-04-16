@@ -109,13 +109,13 @@ export function generateSaleOrderPDF(order) {
 
   // ── CUSTOMER + META BOX ───────────────────────────────────────────────────
   let y = 39
-  const boxH = 46
+  const boxH = 52
   doc.setDrawColor(...LGRAY)
   doc.setLineWidth(0.3)
   doc.rect(ml, y, cw, boxH)
   doc.line(halfX, y, halfX, y + boxH)
 
-  // LEFT — Customer info
+  // LEFT — Customer info (all fields, no internal divider)
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
@@ -132,36 +132,33 @@ export function generateSaleOrderPDF(order) {
   const addrLines = doc.splitTextToSize('Address : ' + (client.address || ''), halfX - ml - 4)
   doc.text(addrLines, ml + 2, y + 18)
 
-  doc.line(ml, y + 30, halfX, y + 30)
-  doc.text('Contact Person : ' + (client.contact_person || ''), ml + 2, y + 35)
-  doc.text('Email ID : ' + (client.email || ''), ml + 2, y + 40)
-  doc.text('GST No : ' + (client.gst_no || ''), ml + 2, y + 45)
+  // Contact fields below address (no divider line)
+  doc.text('Contact Person : ' + (client.contact_person || ''), ml + 2, y + 29)
+  doc.text('Contact Person No : ' + (client.phone || ''), ml + 2, y + 34)
+  doc.text('Email ID : ' + (client.email || ''), ml + 2, y + 39)
+  doc.text('GST No : ' + (client.gst_no || ''), ml + 2, y + 44)
+  doc.text('PAN No : ' + (client.pan_no || ''), ml + 2, y + 49)
 
-  // RIGHT — Quotation meta (6 rows x 5mm = 30mm, divider at 32mm)
+  // RIGHT — Quotation meta (5 rows, no blank row, no internal divider)
   const rX = halfX + 2
   const metaRows = [
     ['Quotation No.', ':  ' + (order.so_number || '')],
     ['Quotation Date', ':  ' + formatDate(order.so_date)],
     ['Despatch Through', ':'],
-    ['', ''],
     ['Payment Terms', ':  ' + (order.payment_terms || 'Net-30')],
     ['Salesman', ':  ' + (order.salesperson_name || '')],
   ]
   doc.setFontSize(7.5)
   metaRows.forEach(([label, value], i) => {
-    const ry = y + 6 + i * 5
+    const ry = y + 7 + i * 6.5
     doc.setFont('helvetica', 'bold')
     doc.text(label, rX, ry)
     doc.setFont('helvetica', 'normal')
     doc.text(String(value), rX + 34, ry)
   })
-  doc.line(halfX, y + 32, ml + cw, y + 32)
-  doc.setFontSize(7)
-  doc.text('Contact Person No : ' + (client.phone || ''), rX, y + 37)
-  doc.text('PAN No : ' + (client.pan_no || ''), rX, y + 42)
 
   // ── ITEMS TABLE ───────────────────────────────────────────────────────────
-  y += 48
+  y += 54
 
   const totals = items.reduce((acc, item) => {
     const c = calcItem(item)
