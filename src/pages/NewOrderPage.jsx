@@ -107,6 +107,12 @@ export default function NewOrderPage() {
   function addItem(sku) {
     if (orderItems.length >= 20) { setError('Maximum 20 items'); return }
     if (orderItems.find(i => i.description === sku.description)) { setError('Item already added'); return }
+    // Clear search immediately so UI updates right away
+    clearTimeout(searchTimeout.current)
+    setSkuSearch('')
+    setSkuResults([])
+    setShowSkuResults(false)
+    setError('')
     setOrderItems(prev => [...prev, {
       description: sku.description,
       hsn_code: sku.hsn_code || '',
@@ -116,9 +122,6 @@ export default function NewOrderPage() {
       discount: globalDiscount || 0,
       tax_rate: sku.tax_rate || 0.18,
     }])
-    setSkuSearch('')
-    setShowSkuResults(false)
-    setError('')
   }
 
   function updateItem(idx, field, value) {
@@ -337,7 +340,7 @@ export default function NewOrderPage() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <input type="text" className="form-input" placeholder="Search item / SKU..."
                   value={skuSearch} onChange={e => setSkuSearch(e.target.value)}
-                  onBlur={() => setTimeout(() => setShowSkuResults(false), 200)} />
+                  onBlur={() => setTimeout(() => setShowSkuResults(false), 300)} />
               </div>
               {skuLoading && <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 0' }}>Searching...</div>}
               {showSkuResults && skuResults.length > 0 && (
