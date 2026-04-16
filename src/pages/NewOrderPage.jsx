@@ -330,7 +330,7 @@ export default function NewOrderPage() {
           </div>
           {totals.totalQty > 0 && <div className="text-sm text-muted">Qty: <strong>{totals.totalQty}</strong></div>}
         </div>
-        <div className="card-body">
+        <div className="card-body" style={{ overflow: 'visible' }}>
           {!isLocked && orderItems.length < 20 && (
             <div style={{ position: 'relative', marginBottom: 12 }}>
               <div className="search-box">
@@ -341,7 +341,7 @@ export default function NewOrderPage() {
               </div>
               {skuLoading && <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 0' }}>Searching...</div>}
               {showSkuResults && skuResults.length > 0 && (
-                <div className="sku-results" style={{ position: 'absolute', zIndex: 50, width: '100%' }}>
+                <div className="sku-results" style={{ position: 'absolute', zIndex: 50, width: '100%', maxHeight: '55vh', overflowY: 'auto' }}>
                   {skuResults.map((sku, i) => (
                     <div key={i} className="sku-result-item" onMouseDown={() => addItem(sku)}>
                       <div className="sku-result-name">{sku.description}</div>
