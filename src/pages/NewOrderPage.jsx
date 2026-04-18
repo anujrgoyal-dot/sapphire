@@ -28,6 +28,7 @@ export default function NewOrderPage() {
   const [remarks, setRemarks] = useState('')
   const [orderItems, setOrderItems] = useState([])
   const [globalDiscount, setGlobalDiscount] = useState(0)
+  const [transport, setTransport] = useState(0)
 
   // SKU search
   const [skuSearch, setSkuSearch] = useState('')
@@ -80,6 +81,7 @@ export default function NewOrderPage() {
           setQuotationDate(data.so_date || new Date().toISOString().split('T')[0])
           setOrderStatus(data.status)
           setGlobalDiscount(data.global_discount || 0)
+          setTransport(data.transport_charges || 0)
         }
       })
     }
@@ -165,8 +167,11 @@ export default function NewOrderPage() {
     return acc
   }, { totalQty: 0, taxableValue: 0, gstAmount: 0, totalValue: 0 })
 
-  const roundedOff = Math.round(totals.totalValue) - totals.totalValue
-  const finalTotal = Math.round(totals.totalValue)
+  const transportAmt = Number(transport) || 0
+  const transportGST = transportAmt * 0.18
+  const totalWithTransport = totals.totalValue + transportAmt + transportGST
+  const roundedOff = Math.round(totalWithTransport) - totalWithTransport
+  const finalTotal = Math.round(totalWithTransport)
 
   const clientSnapshot = {
     customer_code: clientCode, name: clientName, address: clientAddress,
@@ -191,6 +196,7 @@ export default function NewOrderPage() {
       gst_amount: totals.gstAmount,
       total_value: finalTotal,
       global_discount: globalDiscount,
+      transport_charges: Number(transport) || 0,
       status,
       po_no: poNo,
       notes: remarks,
@@ -327,6 +333,12 @@ export default function NewOrderPage() {
               <label className="form-label">PO Number (Optional)</label>
               <input className="form-input" value={poNo} onChange={e => setPoNo(e.target.value)} disabled={isLocked} />
             </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Transport Charges (₹) — 18% GST applied</label>
+              <input type="number" className="form-input" value={transport || ''} min="0"
+                onChange={e => setTransport(parseFloat(e.target.value) || 0)}
+                placeholder="0 (leave empty if no transport)" disabled={isLocked} />
+            </div>
           </div>
           <div className="form-group mt-2" style={{ marginBottom: 0 }}>
             <label className="form-label">Remarks</label>
@@ -422,8 +434,13 @@ export default function NewOrderPage() {
             <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: 12, marginTop: 4 }}>
               {[
                 ['Total Qty / Taxable Value', `${totals.totalQty} / ₹${totals.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-                ['CGST', `₹${(totals.gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-                ['SGST', `₹${(totals.gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                ['CGST (on items)', `₹${(totals.gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                ['SGST (on items)', `₹${(totals.gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                ...(transportAmt > 0 ? [
+                  ['Transport Charges', `₹${transportAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                  ['CGST on Transport @ 9%', `₹${(transportGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                  ['SGST on Transport @ 9%', `₹${(transportGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                ] : []),
                 ['Rounded Off', `${roundedOff >= 0 ? '+' : ''}${roundedOff.toFixed(2)}`],
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
