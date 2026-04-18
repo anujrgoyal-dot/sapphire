@@ -221,6 +221,8 @@ function _buildDoc(order) {
     headStyles: { fillColor: BGRAY, textColor: BLACK, fontSize: 7, fontStyle: 'bold', halign: 'center', lineColor: LGRAY, lineWidth: 0.3 },
     bodyStyles: { fontSize: 7, textColor: BLACK, lineColor: LGRAY, lineWidth: 0.2 },
     footStyles: { fillColor: WHITE, textColor: BLACK, fontSize: 7.5, lineColor: LGRAY, lineWidth: 0.2 },
+    showFoot: 'lastPage',
+    showHead: 'everyPage',
     columnStyles: {
       0: { halign: 'center', cellWidth: 8 },
       1: { cellWidth: 'auto' },
@@ -234,6 +236,7 @@ function _buildDoc(order) {
     },
     tableLineColor: LGRAY,
     tableLineWidth: 0.3,
+    rowPageBreak: 'avoid',
   })
 
   let finalY = doc.lastAutoTable.finalY + 2
@@ -248,17 +251,19 @@ function _buildDoc(order) {
   }
 
   // ── TOTAL IN WORDS ────────────────────────────────────────────────────────
-  checkPageBreak(10)
+  // Check if total-in-words fits on this page (need ~18mm for words box + remarks if any)
+  const wordsBoxH = 10
+  checkPageBreak(wordsBoxH)
   doc.setDrawColor(...LGRAY)
   doc.setLineWidth(0.3)
-  doc.rect(ml, finalY, cw, 8)
+  doc.rect(ml, finalY, cw, wordsBoxH - 2)
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
   doc.text('Total Value In Words : ', ml + 2, finalY + 5)
   doc.setFont('helvetica', 'normal')
   doc.text(numberToWords(finalTotal), ml + 40, finalY + 5)
-  finalY += 10
+  finalY += wordsBoxH
 
   // ── REMARKS ───────────────────────────────────────────────────────────────
   if (order.notes) {
