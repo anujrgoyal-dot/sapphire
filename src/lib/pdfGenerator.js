@@ -227,14 +227,22 @@ export function generateSaleOrderPDF(order) {
   doc.text(numberToWords(finalTotal), ml + 40, finalY + 5)
   finalY += 10
 
-  // ── REMARKS ───────────────────────────────────────────────────────────────
+  // ── REMARKS (dynamic height based on content) ────────────────────────────
   if (order.notes) {
-    doc.rect(ml, finalY, cw, 8)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    const remarkLines = doc.splitTextToSize(order.notes, cw - 26)
+    const lineH = 4.5
+    const remarkBoxH = Math.max(10, 6 + remarkLines.length * lineH)
+    doc.setDrawColor(...LGRAY)
+    doc.rect(ml, finalY, cw, remarkBoxH)
     doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7.5)
     doc.text('Remarks : ', ml + 2, finalY + 5)
     doc.setFont('helvetica', 'normal')
-    doc.text(doc.splitTextToSize(order.notes, cw - 30), ml + 22, finalY + 5)
-    finalY += 10
+    doc.setFontSize(7)
+    doc.text(remarkLines, ml + 24, finalY + 5)
+    finalY += remarkBoxH + 2
   }
 
   // ── BANK DETAILS + TERMS ──────────────────────────────────────────────────
