@@ -30,7 +30,7 @@ export default function LoginPage() {
               style={{ width: '260px', height: '84px', objectFit: 'contain' }}
             />
           </div>
-          <h1>Sales Quotation System</h1>
+          <h1>Order Management System</h1>
           <p>Signin to continue </p>
         </div>
 
