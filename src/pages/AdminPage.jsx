@@ -167,6 +167,12 @@ function AdminClients() {
   const [editing, setEditing] = useState(null)
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
+  const [uploadError, setUploadError] = useState('')
+  const [uploadSuccess, setUploadSuccess] = useState('')
+  const [showUpload, setShowUpload] = useState(false)
+  const fileRef = useRef(null)
   const emptyForm = { customer_code: '', name: '', address: '', city: '', state: 'Maharashtra', pincode: '', gst_no: '', pan_no: '', phone: '', contact_person: '', email: '' }
   const [form, setForm] = useState(emptyForm)
 
@@ -192,6 +198,84 @@ function AdminClients() {
     fetchClients()
   }
 
+  async function handleClientExcelUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true); setUploadError(''); setUploadSuccess(''); setUploadProgress('Reading Excel file...')
+    try {
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer)
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 })
+
+      // Detect header row to map columns flexibly
+      // Map your exact column headers
+      // Columns: Customer Code, Customer Name, Address, Contact Person No, Email ID, Contact Person, GSTIN no.
+      const headers = rows[0].map(h => String(h || '').trim())
+      const col = (names) => {
+        const idx = headers.findIndex(h => names.some(n => h.toLowerCase() === n.toLowerCase() || h.toLowerCase().includes(n.toLowerCase())))
+        return idx >= 0 ? idx : -1
+      }
+
+      const codeCol    = col(['Customer Code', 'Cust Code', 'Code'])
+      const nameCol    = col(['Customer Name', 'Cust Name', 'Name'])
+      const addressCol = col(['Address', 'Addr'])
+      const cityCol    = col(['City'])
+      const stateCol   = col(['State'])
+      const pincodeCol = col(['Pincode', 'Pin', 'Zip'])
+      const gstCol     = col(['GSTIN no.', 'GSTIN', 'GST No', 'GST'])
+      const panCol     = col(['PAN', 'Pan No'])
+      const phoneCol   = col(['Contact Person No', 'Phone', 'Mobile', 'Contact No'])
+      const contactCol = col(['Contact Person', 'Contact Name'])
+      const emailCol   = col(['Email ID', 'Email', 'Mail'])
+
+      if (nameCol === -1) {
+        setUploadError('Could not find "Customer Name" column. Please check your Excel file.')
+        setUploading(false)
+        return
+      }
+
+      const dataRows = rows.slice(1).filter(r => r[nameCol])
+      setUploadProgress(`Found ${dataRows.length} customers. Uploading...`)
+
+      const BATCH = 200
+      for (let i = 0; i < dataRows.length; i += BATCH) {
+        const batch = dataRows.slice(i, i + BATCH).map(r => ({
+          customer_code: codeCol >= 0 ? String(r[codeCol] || '').trim() : '',
+          name:          String(r[nameCol] || '').trim(),
+          address:       addressCol >= 0 ? String(r[addressCol] || '').trim() : '',
+          city:          cityCol >= 0 ? String(r[cityCol] || '').trim() : '',
+          state:         stateCol >= 0 ? String(r[stateCol] || '').trim() : 'Maharashtra',
+          pincode:       pincodeCol >= 0 ? String(r[pincodeCol] || '').trim() : '',
+          gst_no:        gstCol >= 0 ? String(r[gstCol] || '').trim() : '',
+          pan_no:        panCol >= 0 ? String(r[panCol] || '').trim() : '',
+          phone:         phoneCol >= 0 ? String(r[phoneCol] || '').replace(/^91/, '').trim() : '',
+          contact_person: contactCol >= 0 ? String(r[contactCol] || '').trim() : '',
+          email:         emailCol >= 0 ? String(r[emailCol] || '').trim() : '',
+        })).filter(r => r.name)
+
+        const withCode    = batch.filter(r => r.customer_code)
+        const withoutCode = batch.filter(r => !r.customer_code)
+
+        if (withCode.length > 0) {
+          await supabase.from('clients').upsert(withCode, { onConflict: 'customer_code', ignoreDuplicates: false })
+        }
+        if (withoutCode.length > 0) {
+          await supabase.from('clients').insert(withoutCode)
+        }
+        setUploadProgress(`Uploaded ${Math.min(i + BATCH, dataRows.length)} / ${dataRows.length} customers...`)
+      }
+
+      setUploadSuccess(`✓ Successfully uploaded ${dataRows.length} customers!`)
+      fetchClients()
+    } catch (err) {
+      setUploadError('Error: ' + err.message)
+    }
+    setUploading(false)
+    setUploadProgress('')
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.customer_code || '').toLowerCase().includes(search.toLowerCase())
@@ -201,8 +285,44 @@ function AdminClients() {
     <div>
       <div className="flex-between mb-3">
         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{clients.length} clients</div>
-        <button className="btn btn-primary btn-sm" onClick={() => { setForm(emptyForm); setEditing(null); setShowForm(true) }}>+ Add Client</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowUpload(!showUpload)}>📊 Upload Excel</button>
+          <button className="btn btn-primary btn-sm" onClick={() => { setForm(emptyForm); setEditing(null); setShowForm(true) }}>+ Add Client</button>
+        </div>
       </div>
+
+      {/* Excel Upload Section */}
+      {showUpload && (
+        <div className="card mb-3">
+          <div className="card-header"><div className="card-title">Upload Clients from Excel</div></div>
+          <div className="card-body">
+            <div className="alert alert-warning mb-3">
+              ⚠️ Existing customers with same Customer Code will be updated. New ones will be added. No deletions.
+            </div>
+            {uploadError && <div className="alert alert-error">{uploadError}</div>}
+            {uploadSuccess && <div className="alert alert-success">{uploadSuccess}</div>}
+            {uploadProgress && (
+              <div style={{ fontSize: 13, color: 'var(--navy)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div>
+                {uploadProgress}
+              </div>
+            )}
+            <div style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: 20, textAlign: 'center', marginBottom: 12 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" style={{ marginBottom: 8 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Upload Customer Excel</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>.xlsx file with customer data</div>
+              <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleClientExcelUpload} disabled={uploading} style={{ display: 'none' }} id="client-upload" />
+              <label htmlFor="client-upload" className="btn btn-primary btn-sm" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.5 : 1 }}>
+                {uploading ? 'Uploading...' : 'Choose File'}
+              </label>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+              <strong>Accepted columns (any order):</strong> Customer Code, Customer Name, Address, City, State, Pincode, GST Number, PAN Number, Phone, Contact Person, Email
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="search-box mb-3">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" className="form-input" placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} />
