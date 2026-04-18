@@ -44,7 +44,7 @@ export default function NewOrderPage() {
   const searchTimeout = useRef(null)
 
   useEffect(() => {
-    supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
+    supabase.from('clients').select('*').order('name').limit(8000).then(({ data }) => setClients(data || []))
   }, [])
 
   useEffect(() => {
