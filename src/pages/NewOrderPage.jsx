@@ -117,7 +117,7 @@ export default function NewOrderPage() {
   }
 
   function addItem(sku) {
-    if (orderItems.length >= 20) { setError('Maximum 20 items'); return }
+    if (orderItems.length >= 50) { setError('Maximum 50 items'); return }
     if (orderItems.find(i => i.description === sku.description)) { setError('Item already added'); return }
     // Clear search immediately so UI updates right away
     clearTimeout(searchTimeout.current)
@@ -341,12 +341,12 @@ export default function NewOrderPage() {
         <div className="card-header">
           <div className="card-title">
             <span style={{ color: 'var(--accent)' }}>③</span> Items
-            <span className="badge badge-submitted" style={{ marginLeft: 8 }}>{orderItems.length}/20</span>
+            <span className="badge badge-submitted" style={{ marginLeft: 8 }}>{orderItems.length}/50</span>
           </div>
           {totals.totalQty > 0 && <div className="text-sm text-muted">Qty: <strong>{totals.totalQty}</strong></div>}
         </div>
         <div className="card-body" style={{ overflow: 'visible' }}>
-          {!isLocked && orderItems.length < 20 && (
+          {!isLocked && orderItems.length < 50 && (
             <div style={{ position: 'relative', marginBottom: 12 }}>
               <div className="search-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
