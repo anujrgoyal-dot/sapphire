@@ -423,15 +423,16 @@ body {
 }
 
 .login-gem {
-  width: 220px;
-  height: 90px;
+  width: 100%;
+  height: auto;
   background: white;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 14px;
-  overflow: hidden;
+  padding: 8px 0;
+  overflow: visible;
 }
 
 /* ─── Admin tabs ─── */
