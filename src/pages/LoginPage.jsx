@@ -30,8 +30,8 @@ export default function LoginPage() {
               style={{ width: '260px', height: '84px', objectFit: 'contain' }}
             />
           </div>
-          <h1>Sapphire Sales</h1>
-          <p>Sales Order Management System</p>
+          <h1>Sales Quotation System</h1>
+          <p>Signin to continue </p>
         </div>
 
         {error && (
