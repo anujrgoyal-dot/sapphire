@@ -44,7 +44,19 @@ export default function NewOrderPage() {
   const searchTimeout = useRef(null)
 
   useEffect(() => {
-    supabase.from('clients').select('*').order('name').limit(8000).then(({ data }) => setClients(data || []))
+    (async () => {
+      let all = []
+      let from = 0
+      const PAGE = 1000
+      while (true) {
+        const { data } = await supabase.from('clients').select('*').order('name').range(from, from + PAGE - 1)
+        if (!data || data.length === 0) break
+        all = [...all, ...data]
+        if (data.length < PAGE) break
+        from += PAGE
+      }
+      setClients(all)
+    })()
   }, [])
 
   useEffect(() => {
