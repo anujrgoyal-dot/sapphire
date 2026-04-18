@@ -181,8 +181,11 @@ function _buildDoc(order) {
     return acc
   }, { totalQty: 0, taxableValue: 0, gstAmount: 0, totalValue: 0 })
 
-  const roundedOff = Math.round(totals.totalValue) - totals.totalValue
-  const finalTotal = Math.round(totals.totalValue)
+  const transportAmt = Number(order.transport_charges) || 0
+  const transportGST = transportAmt * 0.18
+  const totalWithTransport = totals.totalValue + transportAmt + transportGST
+  const roundedOff = Math.round(totalWithTransport) - totalWithTransport
+  const finalTotal = Math.round(totalWithTransport)
   const cgst = totals.gstAmount / 2
   const sgst = totals.gstAmount / 2
 
@@ -204,6 +207,11 @@ function _buildDoc(order) {
       [{ content: 'Total Quantity / Taxable Value', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, { content: totals.totalQty.toFixed(2), styles: { halign: 'center', fontStyle: 'bold' } }, { content: '', colSpan: 3 }, { content: totals.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right', fontStyle: 'bold' } }],
       [{ content: 'Output CGST @ 9%', colSpan: 8, styles: { halign: 'right' } }, { content: cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }],
       [{ content: 'Output SGST @ 9%', colSpan: 8, styles: { halign: 'right' } }, { content: sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }],
+      ...(transportAmt > 0 ? [
+        [{ content: 'Transport Charges', colSpan: 8, styles: { halign: 'right' } }, { content: transportAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }],
+        [{ content: 'CGST on Transport @ 9%', colSpan: 8, styles: { halign: 'right' } }, { content: (transportGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }],
+        [{ content: 'SGST on Transport @ 9%', colSpan: 8, styles: { halign: 'right' } }, { content: (transportGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }],
+      ] : []),
       [{ content: 'Rounded Off', colSpan: 8, styles: { halign: 'right' } }, { content: roundedOff.toFixed(2), styles: { halign: 'right' } }],
       [{ content: 'Total Value', colSpan: 8, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5 } }, { content: finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5 } }],
     ],
