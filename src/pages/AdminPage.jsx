@@ -136,7 +136,13 @@ function AdminOrders() {
                 <div className="divider" style={{ margin: '10px 0' }} />
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => previewSaleOrderPDF(order)}>👁️ Preview</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => generateSaleOrderPDF(order)}>📥 Download</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => {
+                    const doc = generateSaleOrderPDF(order)
+                    const rawName = (order.client_snapshot && order.client_snapshot.name) ? order.client_snapshot.name : 'Customer'
+                    const clientName = rawName.replace(/[^a-zA-Z0-9 ]/g, '').trim()
+                    const qtnNum = (order.so_number || 'draft').split('/').pop()
+                    doc.save(clientName + '_QTN_' + qtnNum + '.pdf')
+                  }}>📥 Download</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => exportToExcel([order])}>📊 Excel</button>
                   {order.status === 'submitted' && (
                     <button className="btn btn-sm" style={{ background: 'var(--success-bg)', color: 'var(--success)' }} onClick={() => updateStatus(order.id, 'confirmed')}>✓ Confirm</button>
