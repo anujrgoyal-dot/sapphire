@@ -237,106 +237,6 @@ function _buildDoc(order) {
   })
 
   let finalY = doc.lastAutoTable.finalY + 2
-
-  // ── TOTAL IN WORDS ────────────────────────────────────────────────────────
-  doc.setDrawColor(...LGRAY)
-  doc.rect(ml, finalY, cw, 8)
-  doc.setFontSize(7.5)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...BLACK)
-  doc.text('Total Value In Words : ', ml + 2, finalY + 5)
-  doc.setFont('helvetica', 'normal')
-  doc.text(numberToWords(finalTotal), ml + 40, finalY + 5)
-  finalY += 10
-
-  // ── REMARKS (dynamic height based on content) ────────────────────────────
-  if (order.notes) {
-    // Calculate how many lines the remark text will need
-    doc.setFontSize(7)
-    doc.setFont('helvetica', 'normal')
-    // Full width minus "Remarks : " label space
-    const remarkLines = doc.splitTextToSize(order.notes, cw - 4)
-    const lineH = 5
-    // Box height: top padding (6) + label row (6) + all text lines + bottom padding (4)
-    const remarkBoxH = Math.max(14, 6 + remarkLines.length * lineH + 4)
-    doc.setDrawColor(...LGRAY)
-    doc.setLineWidth(0.3)
-    doc.rect(ml, finalY, cw, remarkBoxH)
-    // Label on its own line
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7.5)
-    doc.setTextColor(...BLACK)
-    doc.text('Remarks :', ml + 2, finalY + 5)
-    // Text below label
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7)
-    doc.text(remarkLines, ml + 2, finalY + 11)
-    finalY += remarkBoxH + 2
-  }
-
-  // ── BANK DETAILS + TERMS ──────────────────────────────────────────────────
-  const bankH = 36
-  doc.setDrawColor(...LGRAY)
-  doc.setLineWidth(0.3)
-  doc.rect(ml, finalY, cw, bankH)
-  doc.line(halfX, finalY, halfX, finalY + bankH)
-
-  // Left: Bank details
-  doc.setFontSize(7.5)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...BLACK)
-  doc.text("Company's Bank Details :", ml + 2, finalY + 6)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.text('Account Name : ' + BANK_DETAILS.accountName, ml + 2, finalY + 12)
-  doc.text('Bank Name : ' + BANK_DETAILS.bankName, ml + 2, finalY + 18)
-  doc.text('A/C No. : ' + BANK_DETAILS.accountNo, ml + 2, finalY + 24)
-  doc.text('Branch & IFS Code : ' + BANK_DETAILS.branch, ml + 2, finalY + 30)
-
-  // Right: Terms & Conditions
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.text('Terms & Conditions :', rX, finalY + 6)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  TERMS.forEach((t, i) => doc.text(t, rX, finalY + 13 + i * 5.5))
-  finalY += bankH + 2
-
-  // ── SIGNATORY + QR CODE ───────────────────────────────────────────────────
-  const sigH = 36
-  doc.rect(ml, finalY, cw, sigH)
-  doc.line(halfX, finalY, halfX, finalY + sigH)
-
-  // Left: QR code + label
-  // QR is 290x303 px ~ square, place at 28x28mm centered in left half
-  const qrSize = 28
-  const qrX = ml + (halfX - ml) / 2 - qrSize / 2
-  const qrY = finalY + 3
-  doc.addImage(QR_CODE, 'PNG', qrX, qrY, qrSize, qrSize)
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...BLACK)
-  doc.text('Scan for UPI Payment', ml + (halfX - ml) / 2, qrY + qrSize + 4, { align: 'center' })
-
-  // Right: For Sapphire + Authorised Signatory
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'bold')
-  doc.text('For SAPPHIRE SALES CORPORATION PRIVATE LIMITED', rX, finalY + 10)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.text('Authorised Signatory', rX, finalY + 30)
-
-  // ── PAGE NUMBERS ──────────────────────────────────────────────────────────
-  const pageCount = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i)
-    doc.setFontSize(7)
-    doc.setTextColor(120, 120, 120)
-    doc.text(`Page ${i} of ${pageCount}`, pw - mr, 290, { align: 'right' })
-  }
-
-  return doc
-}  finalY = doc.lastAutoTable.finalY + 2
   const pageH = 295
   const bottomMargin = 12
 
@@ -382,12 +282,12 @@ function _buildDoc(order) {
   }
 
   // ── BANK DETAILS + TERMS ──────────────────────────────────────────────────
-  const bankH = 36
-  checkPageBreak(bankH + 2)
+  const bankBoxH = 36
+  checkPageBreak(bankBoxH + 2)
   doc.setDrawColor(...LGRAY)
   doc.setLineWidth(0.3)
-  doc.rect(ml, finalY, cw, bankH)
-  doc.line(halfX, finalY, halfX, finalY + bankH)
+  doc.rect(ml, finalY, cw, bankBoxH)
+  doc.line(halfX, finalY, halfX, finalY + bankBoxH)
 
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
@@ -406,15 +306,15 @@ function _buildDoc(order) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   TERMS.forEach((t, i) => doc.text(t, rX, finalY + 13 + i * 5.5))
-  finalY += bankH + 2
+  finalY += bankBoxH + 2
 
   // ── SIGNATORY + QR CODE ───────────────────────────────────────────────────
-  const sigH = 36
-  checkPageBreak(sigH + 2)
+  const sigBoxH = 36
+  checkPageBreak(sigBoxH + 2)
   doc.setDrawColor(...LGRAY)
   doc.setLineWidth(0.3)
-  doc.rect(ml, finalY, cw, sigH)
-  doc.line(halfX, finalY, halfX, finalY + sigH)
+  doc.rect(ml, finalY, cw, sigBoxH)
+  doc.line(halfX, finalY, halfX, finalY + sigBoxH)
 
   const qrSize = 28
   const qrX = ml + (halfX - ml) / 2 - qrSize / 2
@@ -431,7 +331,6 @@ function _buildDoc(order) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.text('Authorised Signatory', rX, finalY + 30)
-  finalY += sigH + 2
 
   // ── PAGE NUMBERS ──────────────────────────────────────────────────────────
   const pageCount = doc.internal.getNumberOfPages()
