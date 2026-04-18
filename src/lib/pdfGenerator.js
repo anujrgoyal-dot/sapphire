@@ -136,7 +136,9 @@ function _buildDoc(order) {
 
   doc.setFont('helvetica', 'bold')
   doc.text('Customer Name : ', ml + 2, y + 12)
-  doc.text(client.name || '', ml + 32, y + 12)
+  // Wrap long customer names
+  const nameLines = doc.splitTextToSize(client.name || '', halfX - ml - 34)
+  doc.text(nameLines, ml + 32, y + 12)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
