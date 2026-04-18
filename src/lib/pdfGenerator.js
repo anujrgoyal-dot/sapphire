@@ -59,7 +59,10 @@ export function previewSaleOrderPDF(order) {
 }
 
 export function generateSaleOrderPDF(order) {
-  return _buildDoc(order)
+  const doc = _buildDoc(order)
+  const n = (order.client_snapshot && order.client_snapshot.name) ? order.client_snapshot.name : 'Customer'
+  const num = order.so_number ? order.so_number.split('/').pop() : '0000'
+  doc.save(n.replace(/[^a-zA-Z0-9 ]/g, '').trim() + '_QTN_' + num + '.pdf')
 }
 
 function _buildDoc(order) {
