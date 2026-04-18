@@ -336,4 +336,111 @@ function _buildDoc(order) {
   }
 
   return doc
+}  finalY = doc.lastAutoTable.finalY + 2
+  const pageH = 295
+  const bottomMargin = 12
+
+  function checkPageBreak(neededH) {
+    if (finalY + neededH > pageH - bottomMargin) {
+      doc.addPage()
+      finalY = 12
+    }
+  }
+
+  // ── TOTAL IN WORDS ────────────────────────────────────────────────────────
+  checkPageBreak(10)
+  doc.setDrawColor(...LGRAY)
+  doc.setLineWidth(0.3)
+  doc.rect(ml, finalY, cw, 8)
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BLACK)
+  doc.text('Total Value In Words : ', ml + 2, finalY + 5)
+  doc.setFont('helvetica', 'normal')
+  doc.text(numberToWords(finalTotal), ml + 40, finalY + 5)
+  finalY += 10
+
+  // ── REMARKS ───────────────────────────────────────────────────────────────
+  if (order.notes) {
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    const remarkLines = doc.splitTextToSize(order.notes, cw - 4)
+    const lineH = 5
+    const remarkBoxH = Math.max(14, 6 + remarkLines.length * lineH + 4)
+    checkPageBreak(remarkBoxH + 2)
+    doc.setDrawColor(...LGRAY)
+    doc.setLineWidth(0.3)
+    doc.rect(ml, finalY, cw, remarkBoxH)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(7.5)
+    doc.setTextColor(...BLACK)
+    doc.text('Remarks :', ml + 2, finalY + 5)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    doc.text(remarkLines, ml + 2, finalY + 11)
+    finalY += remarkBoxH + 2
+  }
+
+  // ── BANK DETAILS + TERMS ──────────────────────────────────────────────────
+  const bankH = 36
+  checkPageBreak(bankH + 2)
+  doc.setDrawColor(...LGRAY)
+  doc.setLineWidth(0.3)
+  doc.rect(ml, finalY, cw, bankH)
+  doc.line(halfX, finalY, halfX, finalY + bankH)
+
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BLACK)
+  doc.text("Company's Bank Details :", ml + 2, finalY + 6)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.text('Account Name : ' + BANK_DETAILS.accountName, ml + 2, finalY + 12)
+  doc.text('Bank Name : ' + BANK_DETAILS.bankName, ml + 2, finalY + 18)
+  doc.text('A/C No. : ' + BANK_DETAILS.accountNo, ml + 2, finalY + 24)
+  doc.text('Branch & IFS Code : ' + BANK_DETAILS.branch, ml + 2, finalY + 30)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.text('Terms & Conditions :', rX, finalY + 6)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  TERMS.forEach((t, i) => doc.text(t, rX, finalY + 13 + i * 5.5))
+  finalY += bankH + 2
+
+  // ── SIGNATORY + QR CODE ───────────────────────────────────────────────────
+  const sigH = 36
+  checkPageBreak(sigH + 2)
+  doc.setDrawColor(...LGRAY)
+  doc.setLineWidth(0.3)
+  doc.rect(ml, finalY, cw, sigH)
+  doc.line(halfX, finalY, halfX, finalY + sigH)
+
+  const qrSize = 28
+  const qrX = ml + (halfX - ml) / 2 - qrSize / 2
+  const qrY = finalY + 3
+  doc.addImage(QR_CODE, 'PNG', qrX, qrY, qrSize, qrSize)
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...BLACK)
+  doc.text('Scan for UPI Payment', ml + (halfX - ml) / 2, qrY + qrSize + 4, { align: 'center' })
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.text('For SAPPHIRE SALES CORPORATION PRIVATE LIMITED', rX, finalY + 10)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.text('Authorised Signatory', rX, finalY + 30)
+  finalY += sigH + 2
+
+  // ── PAGE NUMBERS ──────────────────────────────────────────────────────────
+  const pageCount = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(7)
+    doc.setTextColor(120, 120, 120)
+    doc.text(`Page ${i} of ${pageCount}`, pw - mr, 290, { align: 'right' })
+  }
+
+  return doc
 }
