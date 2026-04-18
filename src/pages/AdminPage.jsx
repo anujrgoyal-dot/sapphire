@@ -162,221 +162,133 @@ function AdminOrders() {
 
 // ── ADMIN CLIENTS ─────────────────────────────────────────────────────────────
 function AdminClients() {
-  const [clients, setClients] = useState([])
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [search, setSearch] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [clientCount, setClientCount] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState('')
-  const [uploadError, setUploadError] = useState('')
-  const [uploadSuccess, setUploadSuccess] = useState('')
-  const [showUpload, setShowUpload] = useState(false)
+  const [progress, setProgress] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const fileRef = useRef(null)
-  const emptyForm = { customer_code: '', name: '', address: '', city: '', state: 'Maharashtra', pincode: '', gst_no: '', pan_no: '', phone: '', contact_person: '', email: '' }
-  const [form, setForm] = useState(emptyForm)
 
-  useEffect(() => { fetchClients() }, [])
+  useEffect(() => { fetchCount() }, [])
 
-  async function fetchClients() {
-    const { data } = await supabase.from('clients').select('*').order('name').limit(8000)
-    setClients(data || [])
-  }
-
-  async function saveClient() {
-    setSaving(true)
-    if (editing) await supabase.from('clients').update(form).eq('id', editing)
-    else await supabase.from('clients').insert(form)
-    setSaving(false)
-    setShowForm(false)
-    fetchClients()
-  }
-
-  async function deleteClient(id) {
-    if (!confirm('Delete this client?')) return
-    await supabase.from('clients').delete().eq('id', id)
-    fetchClients()
+  async function fetchCount() {
+    const { count } = await supabase.from('clients').select('*', { count: 'exact', head: true })
+    setClientCount(count)
   }
 
   async function handleClientExcelUpload(e) {
     const file = e.target.files[0]
     if (!file) return
-    setUploading(true); setUploadError(''); setUploadSuccess(''); setUploadProgress('Reading Excel file...')
+    setUploading(true); setError(''); setSuccess(''); setProgress('Reading Excel file...')
     try {
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer)
       const ws = wb.Sheets[wb.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 })
 
-      // Detect header row to map columns flexibly
-      // Map your exact column headers
-      // Columns: Customer Code, Customer Name, Address, Contact Person No, Email ID, Contact Person, GSTIN no.
       const headers = rows[0].map(h => String(h || '').trim())
-      const col = (names) => {
-        const idx = headers.findIndex(h => names.some(n => h.toLowerCase() === n.toLowerCase() || h.toLowerCase().includes(n.toLowerCase())))
-        return idx >= 0 ? idx : -1
+
+      // Exact match first, then partial
+      const col = (exactNames, partialNames = []) => {
+        let idx = headers.findIndex(h => exactNames.some(n => h === n))
+        if (idx === -1) idx = headers.findIndex(h => partialNames.some(n => h.toLowerCase().includes(n.toLowerCase())))
+        return idx
       }
 
-      const codeCol    = col(['Customer Code', 'Cust Code', 'Code'])
-      const nameCol    = col(['Customer Name', 'Cust Name', 'Name'])
-      const addressCol = col(['Address', 'Addr'])
-      const cityCol    = col(['City'])
-      const stateCol   = col(['State'])
-      const pincodeCol = col(['Pincode', 'Pin', 'Zip'])
-      const gstCol     = col(['GSTIN no.', 'GSTIN', 'GST No', 'GST'])
-      const panCol     = col(['PAN', 'Pan No'])
-      // Use exact match first to avoid 'Contact Person' matching 'Contact Person No'
-      const phoneCol   = headers.findIndex(h => h.trim() === 'Contact Person No' || h.toLowerCase().includes('phone') || h.toLowerCase().includes('mobile'))
-      const contactCol = headers.findIndex(h => h.trim() === 'Contact Person' || h.toLowerCase() === 'contact name')
-      const emailCol   = col(['Email ID', 'Email', 'Mail'])
+      const codeCol    = col(['Customer Code'], ['code'])
+      const nameCol    = col(['Customer Name'], ['name'])
+      const addressCol = col(['Address'], ['addr'])
+      const cityCol    = col(['City'], ['city'])
+      const stateCol   = col(['State'], ['state'])
+      const pincodeCol = col(['Pincode'], ['pin', 'zip'])
+      const gstCol     = col(['GSTIN no.', 'GSTIN No', 'GST No', 'GSTIN'], ['gstin', 'gst'])
+      const panCol     = col(['PAN No', 'PAN'], ['pan'])
+      const phoneCol   = col(['Contact Person No'], ['phone', 'mobile'])
+      const contactCol = col(['Contact Person'], ['contact person', 'contact name'])
+      const emailCol   = col(['Email ID', 'Email'], ['email', 'mail'])
 
-      if (nameCol === -1) {
-        setUploadError('Could not find "Customer Name" column. Please check your Excel file.')
-        setUploading(false)
-        return
-      }
+      if (nameCol === -1) { setError('Could not find "Customer Name" column.'); setUploading(false); return }
 
       const dataRows = rows.slice(1).filter(r => r[nameCol])
-      setUploadProgress(`Found ${dataRows.length} customers. Uploading...`)
+      setProgress(`Found ${dataRows.length} customers. Uploading...`)
 
-      const BATCH = 200
+      const BATCH = 300
       for (let i = 0; i < dataRows.length; i += BATCH) {
         const batch = dataRows.slice(i, i + BATCH).map(r => ({
-          customer_code: codeCol >= 0 ? String(r[codeCol] || '').trim() : '',
-          name:          String(r[nameCol] || '').trim(),
-          address:       addressCol >= 0 ? String(r[addressCol] || '').trim() : '',
-          city:          cityCol >= 0 ? String(r[cityCol] || '').trim() : '',
-          state:         stateCol >= 0 ? String(r[stateCol] || '').trim() : 'Maharashtra',
-          pincode:       pincodeCol >= 0 ? String(r[pincodeCol] || '').trim() : '',
-          gst_no:        gstCol >= 0 ? String(r[gstCol] || '').trim() : '',
-          pan_no:        panCol >= 0 ? String(r[panCol] || '').trim() : '',
-          phone:         phoneCol >= 0 ? String(r[phoneCol] || '').replace(/^91/, '').trim() : '',
-          contact_person: contactCol >= 0 ? String(r[contactCol] || '').trim() : '',
-          email:         emailCol >= 0 ? String(r[emailCol] || '').trim() : '',
+          customer_code:  codeCol >= 0    ? String(r[codeCol] || '').trim() : '',
+          name:           String(r[nameCol] || '').trim(),
+          address:        addressCol >= 0  ? String(r[addressCol] || '').trim() : '',
+          city:           cityCol >= 0     ? String(r[cityCol] || '').trim() : '',
+          state:          stateCol >= 0    ? String(r[stateCol] || '').trim() : 'Maharashtra',
+          pincode:        pincodeCol >= 0  ? String(r[pincodeCol] || '').trim() : '',
+          gst_no:         gstCol >= 0      ? String(r[gstCol] || '').trim() : '',
+          pan_no:         panCol >= 0      ? String(r[panCol] || '').trim() : '',
+          phone:          phoneCol >= 0    ? String(r[phoneCol] || '').replace(/^91/, '').trim() : '',
+          contact_person: contactCol >= 0  ? String(r[contactCol] || '').trim() : '',
+          email:          emailCol >= 0    ? String(r[emailCol] || '').trim() : '',
         })).filter(r => r.name)
 
         const withCode    = batch.filter(r => r.customer_code)
         const withoutCode = batch.filter(r => !r.customer_code)
 
         if (withCode.length > 0) {
-          // Upsert: update if customer_code exists, insert if new
-          await supabase.from('clients').upsert(withCode, {
-            onConflict: 'customer_code',
-            ignoreDuplicates: false
-          })
+          await supabase.from('clients').upsert(withCode, { onConflict: 'customer_code', ignoreDuplicates: false })
         }
         if (withoutCode.length > 0) {
-          // No code — only insert if name doesn't already exist
-          for (const c of withoutCode) {
-            const { data: existing } = await supabase.from('clients').select('id').ilike('name', c.name).limit(1)
-            if (!existing || existing.length === 0) {
-              await supabase.from('clients').insert(c)
-            } else {
-              await supabase.from('clients').update(c).eq('id', existing[0].id)
-            }
-          }
+          await supabase.from('clients').insert(withoutCode)
         }
-        setUploadProgress(`Uploaded ${Math.min(i + BATCH, dataRows.length)} / ${dataRows.length} customers...`)
+        setProgress(`Uploaded ${Math.min(i + BATCH, dataRows.length)} / ${dataRows.length} customers...`)
       }
 
-      setUploadSuccess(`✓ Successfully uploaded ${dataRows.length} customers!`)
-      fetchClients()
-    } catch (err) {
-      setUploadError('Error: ' + err.message)
-    }
-    setUploading(false)
-    setUploadProgress('')
+      setSuccess(`✓ Successfully uploaded ${dataRows.length} customers!`)
+      fetchCount()
+    } catch (err) { setError('Error: ' + err.message) }
+    setUploading(false); setProgress('')
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.customer_code || '').toLowerCase().includes(search.toLowerCase())
-  )
-
   return (
     <div>
-      <div className="flex-between mb-3">
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{clients.length} clients</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowUpload(!showUpload)}>📊 Upload Excel</button>
-          <button className="btn btn-primary btn-sm" onClick={() => { setForm(emptyForm); setEditing(null); setShowForm(true) }}>+ Add Client</button>
+      {/* Count card */}
+      <div className="card mb-3">
+        <div className="card-body">
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Total Clients</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy)' }}>
+            {clientCount !== null ? clientCount.toLocaleString('en-IN') : '...'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Customers in database</div>
         </div>
       </div>
 
-      {/* Excel Upload Section */}
-      {showUpload && (
-        <div className="card mb-3">
-          <div className="card-header"><div className="card-title">Upload Clients from Excel</div></div>
-          <div className="card-body">
-            <div className="alert alert-warning mb-3">
-              ⚠️ Existing customers with same Customer Code will be updated. New ones will be added. No deletions.
+      {/* Upload card */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">Upload / Update Client List</div></div>
+        <div className="card-body">
+          <div className="alert alert-warning mb-3">
+            ⚠️ Customers with same Customer Code will be updated. New ones will be added. No deletions.
+          </div>
+          {error && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
+          {progress && (
+            <div style={{ fontSize: 13, color: 'var(--navy)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div>
+              {progress}
             </div>
-            {uploadError && <div className="alert alert-error">{uploadError}</div>}
-            {uploadSuccess && <div className="alert alert-success">{uploadSuccess}</div>}
-            {uploadProgress && (
-              <div style={{ fontSize: 13, color: 'var(--navy)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div>
-                {uploadProgress}
-              </div>
-            )}
-            <div style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: 20, textAlign: 'center', marginBottom: 12 }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" style={{ marginBottom: 8 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Upload Customer Excel</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>.xlsx file with customer data</div>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleClientExcelUpload} disabled={uploading} style={{ display: 'none' }} id="client-upload" />
-              <label htmlFor="client-upload" className="btn btn-primary btn-sm" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.5 : 1 }}>
-                {uploading ? 'Uploading...' : 'Choose File'}
-              </label>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-              <strong>Accepted columns (any order):</strong> Customer Code, Customer Name, Address, City, State, Pincode, GST Number, PAN Number, Phone, Contact Person, Email
-            </div>
+          )}
+          <div style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: 24, textAlign: 'center', marginBottom: 12 }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" style={{ marginBottom: 8 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Upload Excel File</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 12 }}>.xlsx file with your customer list</div>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleClientExcelUpload} disabled={uploading} style={{ display: 'none' }} id="client-upload" />
+            <label htmlFor="client-upload" className="btn btn-primary btn-sm" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.5 : 1 }}>
+              {uploading ? 'Uploading...' : 'Choose File'}
+            </label>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+            <strong>Expected columns:</strong> Customer Code, Customer Name, Address, Contact Person No, Email ID, Contact Person, GSTIN no.
           </div>
         </div>
-      )}
-
-      <div className="search-box mb-3">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" className="form-input" placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} />
       </div>
-      {filtered.map(c => (
-        <div key={c.id} className="card mb-2">
-          <div className="card-body" style={{ padding: 12 }}>
-            <div className="flex-between">
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.customer_code} · {c.city} · {c.phone}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>GST: {c.gst_no}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setForm({ ...c }); setEditing(c.id); setShowForm(true) }}>Edit</button>
-                <button className="btn btn-sm" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }} onClick={() => deleteClient(c.id)}>Del</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-      {showForm && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="modal-sheet">
-            <div className="modal-handle"></div>
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>{editing ? 'Edit Client' : 'Add New Client'}</div>
-            {[['customer_code', 'Customer Code *'], ['name', 'Customer Name *'], ['address', 'Address'], ['city', 'City'], ['state', 'State'], ['pincode', 'Pincode'], ['gst_no', 'GST Number'], ['pan_no', 'PAN Number'], ['phone', 'Phone'], ['contact_person', 'Contact Person'], ['email', 'Email']].map(([key, label]) => (
-              <div className="form-group" key={key}>
-                <label className="form-label">{label}</label>
-                <input className="form-input" value={form[key] || ''} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button className="btn btn-ghost btn-full" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn btn-primary btn-full" onClick={saveClient} disabled={saving || !form.name || !form.customer_code}>
-                {saving ? 'Saving...' : 'Save Client'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
