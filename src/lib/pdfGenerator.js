@@ -52,7 +52,18 @@ function calcItem(item) {
   return { qty, price, disc, taxableValue, gstAmount, totalValue: taxableValue + gstAmount, taxRate }
 }
 
+export function previewSaleOrderPDF(order) {
+  const doc = _buildDoc(order)
+  const blobUrl = doc.output('bloburl')
+  window.open(blobUrl, '_blank')
+}
+
 export function generateSaleOrderPDF(order) {
+  const doc = _buildDoc(order)
+  return doc
+}
+
+function _buildDoc(order) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const pw = 210, ml = 10, mr = 10, cw = pw - ml - mr
   const halfX = ml + cw / 2
@@ -313,5 +324,5 @@ export function generateSaleOrderPDF(order) {
     doc.text(`Page ${i} of ${pageCount}`, pw - mr, 290, { align: 'right' })
   }
 
-  doc.save(`QTN-${order.so_number || 'draft'}.pdf`)
+  return doc
 }
