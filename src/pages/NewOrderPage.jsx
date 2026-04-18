@@ -168,8 +168,9 @@ export default function NewOrderPage() {
   }, { totalQty: 0, taxableValue: 0, gstAmount: 0, totalValue: 0 })
 
   const transportAmt = Number(transport) || 0
-  const transportGST = transportAmt * 0.18
-  const totalWithTransport = totals.totalValue + transportAmt + transportGST
+  const totalTaxableValue = totals.taxableValue + transportAmt
+  const totalGST = totalTaxableValue * 0.18
+  const totalWithTransport = totalTaxableValue + totalGST
   const roundedOff = Math.round(totalWithTransport) - totalWithTransport
   const finalTotal = Math.round(totalWithTransport)
 
@@ -192,8 +193,8 @@ export default function NewOrderPage() {
       client_snapshot: clientSnapshot,
       items: orderItems,
       total_qty: totals.totalQty,
-      taxable_value: totals.taxableValue,
-      gst_amount: totals.gstAmount,
+      taxable_value: totalTaxableValue,
+      gst_amount: totalGST,
       total_value: finalTotal,
       global_discount: globalDiscount,
       transport_charges: Number(transport) || 0,
@@ -433,14 +434,12 @@ export default function NewOrderPage() {
           {orderItems.length > 0 && (
             <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: 12, marginTop: 4 }}>
               {[
-                ['Total Qty / Taxable Value', `${totals.totalQty} / ₹${totals.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-                ['CGST (on items)', `₹${(totals.gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-                ['SGST (on items)', `₹${(totals.gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
                 ...(transportAmt > 0 ? [
                   ['Transport Charges', `₹${transportAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-                  ['CGST on Transport @ 9%', `₹${(transportGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-                  ['SGST on Transport @ 9%', `₹${(transportGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
                 ] : []),
+                ['Total Qty / Taxable Value', `${totals.totalQty} / ₹${totalTaxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                ['CGST @ 9%', `₹${(totalGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
+                ['SGST @ 9%', `₹${(totalGST / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
                 ['Rounded Off', `${roundedOff >= 0 ? '+' : ''}${roundedOff.toFixed(2)}`],
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
