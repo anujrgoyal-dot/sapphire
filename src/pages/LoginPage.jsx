@@ -27,7 +27,7 @@ export default function LoginPage() {
             <img
               src={SAPPHIRE_LOGO}
               alt="Sapphire Logo"
-              style={{ width: '180px', height: '74px', objectFit: 'contain' }}
+              style={{ width: '240px', height: '98px', objectFit: 'contain' }}
             />
           </div>
           <h1>Sapphire Sales</h1>
