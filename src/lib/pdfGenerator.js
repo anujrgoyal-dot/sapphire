@@ -229,19 +229,26 @@ export function generateSaleOrderPDF(order) {
 
   // ── REMARKS (dynamic height based on content) ────────────────────────────
   if (order.notes) {
+    // Calculate how many lines the remark text will need
     doc.setFontSize(7)
     doc.setFont('helvetica', 'normal')
-    const remarkLines = doc.splitTextToSize(order.notes, cw - 26)
-    const lineH = 4.5
-    const remarkBoxH = Math.max(10, 6 + remarkLines.length * lineH)
+    // Full width minus "Remarks : " label space
+    const remarkLines = doc.splitTextToSize(order.notes, cw - 4)
+    const lineH = 5
+    // Box height: top padding (6) + label row (6) + all text lines + bottom padding (4)
+    const remarkBoxH = Math.max(14, 6 + remarkLines.length * lineH + 4)
     doc.setDrawColor(...LGRAY)
+    doc.setLineWidth(0.3)
     doc.rect(ml, finalY, cw, remarkBoxH)
+    // Label on its own line
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(7.5)
-    doc.text('Remarks : ', ml + 2, finalY + 5)
+    doc.setTextColor(...BLACK)
+    doc.text('Remarks :', ml + 2, finalY + 5)
+    // Text below label
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
-    doc.text(remarkLines, ml + 24, finalY + 5)
+    doc.text(remarkLines, ml + 2, finalY + 11)
     finalY += remarkBoxH + 2
   }
 
