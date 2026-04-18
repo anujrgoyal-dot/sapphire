@@ -179,7 +179,7 @@ function AdminClients() {
   useEffect(() => { fetchClients() }, [])
 
   async function fetchClients() {
-    const { data } = await supabase.from('clients').select('*').order('name')
+    const { data } = await supabase.from('clients').select('*').order('name').limit(8000)
     setClients(data || [])
   }
 
@@ -225,8 +225,9 @@ function AdminClients() {
       const pincodeCol = col(['Pincode', 'Pin', 'Zip'])
       const gstCol     = col(['GSTIN no.', 'GSTIN', 'GST No', 'GST'])
       const panCol     = col(['PAN', 'Pan No'])
-      const phoneCol   = col(['Contact Person No', 'Phone', 'Mobile', 'Contact No'])
-      const contactCol = col(['Contact Person', 'Contact Name'])
+      // Use exact match first to avoid 'Contact Person' matching 'Contact Person No'
+      const phoneCol   = headers.findIndex(h => h.trim() === 'Contact Person No' || h.toLowerCase().includes('phone') || h.toLowerCase().includes('mobile'))
+      const contactCol = headers.findIndex(h => h.trim() === 'Contact Person' || h.toLowerCase() === 'contact name')
       const emailCol   = col(['Email ID', 'Email', 'Mail'])
 
       if (nameCol === -1) {
@@ -258,10 +259,22 @@ function AdminClients() {
         const withoutCode = batch.filter(r => !r.customer_code)
 
         if (withCode.length > 0) {
-          await supabase.from('clients').upsert(withCode, { onConflict: 'customer_code', ignoreDuplicates: false })
+          // Upsert: update if customer_code exists, insert if new
+          await supabase.from('clients').upsert(withCode, {
+            onConflict: 'customer_code',
+            ignoreDuplicates: false
+          })
         }
         if (withoutCode.length > 0) {
-          await supabase.from('clients').insert(withoutCode)
+          // No code — only insert if name doesn't already exist
+          for (const c of withoutCode) {
+            const { data: existing } = await supabase.from('clients').select('id').ilike('name', c.name).limit(1)
+            if (!existing || existing.length === 0) {
+              await supabase.from('clients').insert(c)
+            } else {
+              await supabase.from('clients').update(c).eq('id', existing[0].id)
+            }
+          }
         }
         setUploadProgress(`Uploaded ${Math.min(i + BATCH, dataRows.length)} / ${dataRows.length} customers...`)
       }
