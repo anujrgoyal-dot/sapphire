@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { generateSaleOrderPDF, previewSaleOrderPDF } from '../lib/pdfGenerator'
-import { downloadQuotation } from '../lib/downloadHelper'
 
 export default function OrdersPage() {
   const { profile } = useAuth()
@@ -24,8 +23,8 @@ export default function OrdersPage() {
   }
 
   async function duplicateOrder(order) {
-    const { count } = await supabase.from('sales_orders').select('*', { count: 'exact', head: true })
-    const soNum = `KSQ_${new Date().getFullYear()}/${String((count || 0) + 1).padStart(4, '0')}`
+    const { data: soData } = await supabase.rpc('get_next_so_number')
+    const soNum = soData || `KSQ_${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`
     const { data, error } = await supabase.from('sales_orders').insert({
       so_number: soNum,
       so_date: new Date().toISOString().split('T')[0],
@@ -119,7 +118,19 @@ export default function OrdersPage() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   Preview
                 </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => generateSaleOrderPDF(order)}>
+                <button className="btn btn-ghost btn-sm" onClick={() => {
+                  const n = order.client_snapshot ? order.client_snapshot.name : 'Customer'
+                  const num = order.so_number ? order.so_number.split('/').pop() : '0000'
+                  const filename = n.replace(/[^a-zA-Z0-9 ]/g,'').trim() + '_QTN_' + num + '.pdf'
+                  const doc = generateSaleOrderPDF(order)
+                  const blob = doc.output('blob')
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = filename
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Download
                 </button>
