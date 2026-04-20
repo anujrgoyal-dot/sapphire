@@ -23,8 +23,9 @@ export default function OrdersPage() {
   }
 
   async function duplicateOrder(order) {
-   const { count } = await supabase.from('sales_orders').select('*', { count: 'exact', head: true })
-    const soNum = `KSQ_${new Date().getFullYear()}/${String((count || 0) + 1).padStart(4, '0')}`
+    const { data: lastNumData } = await supabase.rpc('get_last_so_number')
+    const lastNum = lastNumData || 0
+    const soNum = `KSQ_${new Date().getFullYear()}/${String(lastNum + 1).padStart(4, '0')}`
     const { data, error } = await supabase.from('sales_orders').insert({
       so_number: soNum,
       so_date: new Date().toISOString().split('T')[0],
