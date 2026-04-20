@@ -26,7 +26,7 @@ function AppShell() {
       {/* Top Bar */}
       <div className="topbar">
         <div className="topbar-logo">
-          <span style={{ color: 'var(--accent-light)' }}>◆</span> Sapphire Sales
+          <span style={{ color: 'var(--accent-light)' }}>◆</span> Sapphire Sales Corporation Pvt Ltd
           <span>{profile.name} · {profile.role}</span>
         </div>
         <div className="topbar-actions">
