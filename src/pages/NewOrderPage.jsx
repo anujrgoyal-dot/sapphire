@@ -209,8 +209,9 @@ export default function NewOrderPage() {
     if (isEdit) {
       result = await supabase.from('sales_orders').update(orderData).eq('id', orderId).select().single()
     } else {
-      const { count } = await supabase.from('sales_orders').select('*', { count: 'exact', head: true })
-      const soNum = `KSQ_${new Date().getFullYear()}/${String((count || 0) + 1).padStart(4, '0')}`
+      // Use database sequence to guarantee uniqueness even with concurrent users
+      const { data: soData } = await supabase.rpc('get_next_so_number')
+      const soNum = soData || `KSQ_${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`
       result = await supabase.from('sales_orders').insert({ ...orderData, so_number: soNum }).select().single()
     }
 
