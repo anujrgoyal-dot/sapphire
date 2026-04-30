@@ -363,7 +363,7 @@ function AdminInventory() {
               {uploading ? 'Uploading...' : 'Choose File'}
             </label>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}><strong>Expected columns:</strong> A=Item Description, B=UOM, C=Tax Rate, D=HSN Code, E=MRP</div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}><strong>Expected columns:</strong> A=Item Description, B=Inventory UoM, C=Tax Rate, D=HSN Code, E=MRP</div>
         </div>
       </div>
     </div>
